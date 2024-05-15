@@ -2,22 +2,24 @@ package main
 
 type Queue []string
 
-func (self *Queue) Push(x string) {
-	*self = append(*self, x)
+func (q *Queue) Push(x string) {
+	*q = append(*q, x)
 }
-func (self *Queue) Size() int {
-	h := *self
+
+func (q *Queue) Size() int {
+	h := *q
 	l := len(h)
 	return l
 }
-func (self *Queue) Pop() string {
-	h := *self
+
+func (q *Queue) Pop() string {
+	h := *q
 	var el string
 	l := len(h)
 	if l == 0 {
 		return ""
 	}
-	el, *self = h[0], h[1:l]
+	el, *q = h[0], h[1:l]
 
 	return el
 }

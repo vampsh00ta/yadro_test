@@ -22,9 +22,9 @@ const (
 	PlaceIsBusy      = "PlaceIsBusy"
 	ClientUnknown    = "ClientUnknown"
 )
+
 const (
-	timeFormat     = "%02d:%02d "
-	idCLientFormat = "\t%s %s "
+	timeIDName = "%02d:%02d %s %s"
 )
 
 func strToTime(str string) time.Time {
@@ -36,6 +36,18 @@ func strToTime(str string) time.Time {
 func readLine(scanner *bufio.Scanner) string {
 	scanner.Scan()
 	return scanner.Text()
+}
+
+func textOk(t time.Time, ID, clientName string) string {
+	return fmt.Sprintf(timeIDName, t.Hour(), t.Minute(), ID, clientName)
+}
+
+func textOKTableID(t time.Time, ID, clientName string, tableID int) string {
+	return fmt.Sprintf(timeIDName+" %d ", t.Hour(), t.Minute(), ID, clientName, tableID)
+}
+
+func textError(t time.Time, ID, err string) string {
+	return fmt.Sprintf(timeIDName, t.Hour(), t.Minute(), "13", err)
 }
 
 func main() {
@@ -55,17 +67,17 @@ func main() {
 	workEndTime := strToTime(workTimeStrSplited[1])
 
 	cost, _ := strconv.Atoi(readLine(scanner))
-	//учет столов tableId : client {name, startTime}
+	// учет столов tableId : client {name, startTime}
 	tables := make(map[int]Client)
 	// учет клинетов name : tableID
 	clients := make(map[string]int)
-	//очередь ожидания
+	// очередь ожидания
 	q := NewQueue()
-	//итоговые данные по столам
+	// итоговые данные по столам
 
 	res := make([]float64, computerCount)
 
-	//итоговые ушедших
+	// итоговые ушедших
 	goneClients := make([]string, 0)
 	fmt.Printf("%02d:%02d\n", workStartTime.Hour(), workStartTime.Minute())
 
@@ -78,29 +90,29 @@ func main() {
 		switch ID {
 		case "1":
 
-			fmt.Printf("%02d:%02d %s %s\n", clientTime.Hour(), clientTime.Minute(), ID, clientName)
-
+			fmt.Println(textOk(clientTime, ID, clientName))
 			if clientTime.Before(workStartTime) || clientTime.After(workEndTime) {
-				fmt.Printf(timeFormat+idCLientFormat+"\n", clientTime.Hour(), clientTime.Minute(), "13", NotOpenYet)
+				fmt.Println(textError(clientTime, "13", NotOpenYet))
 				continue
 			}
 			if _, ok := clients[clientName]; ok {
-				fmt.Printf(timeFormat+idCLientFormat+"\n", clientTime.Hour(), clientTime.Minute(), "13", YouShallNotPass)
+				fmt.Println(textError(clientTime, "13", YouShallNotPass))
 
 				continue
 			}
 			clients[clientName] = -1
 		case "2":
 			tableID, _ := strconv.Atoi(splitedStr[3])
-			fmt.Printf("%02d:%02d  %s %s %d\n", clientTime.Hour(), clientTime.Minute(), ID, clientName, tableID)
+			fmt.Println(textOKTableID(clientTime, ID, clientName, tableID))
 
 			if _, ok := tables[tableID]; ok {
-				fmt.Printf(timeFormat+idCLientFormat+"\n", clientTime.Hour(), clientTime.Minute(), "13", PlaceIsBusy)
+				fmt.Println(textError(clientTime, "13", PlaceIsBusy))
 
 				continue
 			}
 			if _, ok := clients[clientName]; !ok {
-				fmt.Printf(timeFormat+idCLientFormat+"\n", clientTime.Hour(), clientTime.Minute(), "13", ClientUnknown)
+
+				fmt.Println(textError(clientTime, "13", ClientUnknown))
 
 				continue
 			}
@@ -111,11 +123,10 @@ func main() {
 			tables[tableID] = client
 
 		case "3":
-			fmt.Printf("%02d:%02d %s %s\n", clientTime.Hour(), clientTime.Minute(), ID, clientName)
+			fmt.Println(textOk(clientTime, ID, clientName))
 
 			if len(tables) < computerCount {
-				fmt.Printf(timeFormat+idCLientFormat+"\n", clientTime.Hour(), clientTime.Minute(), "13", ICanWaitNoLonger)
-
+				fmt.Println(textError(clientTime, "13", ICanWaitNoLonger))
 				continue
 			}
 			if q.Size() >= computerCount {
@@ -126,14 +137,14 @@ func main() {
 			q.Push(clientName)
 
 		case "4":
-			fmt.Printf("%02d:%02d %s %s\n", clientTime.Hour(), clientTime.Minute(), ID, clientName)
+			fmt.Println(textOk(clientTime, ID, clientName))
 
 			if _, ok := clients[clientName]; !ok {
-				fmt.Printf(timeFormat+idCLientFormat+"\n", clientTime.Hour(), clientTime.Minute(), "13", ClientUnknown)
+				fmt.Println(textError(clientTime, "13", ClientUnknown))
 
 				continue
 			}
-			//считаем время за компом
+			// считаем время за компом
 			tableID := clients[clientName]
 			leftClient := tables[tableID]
 
@@ -141,14 +152,15 @@ func main() {
 
 			res[tableID-1] += spentTime.Minutes()
 			delete(clients, clientName)
-			//берем из очереди клиента
+
+			// берем из очереди клиента
 			qClient := q.Pop()
 			if qClient != "" {
 				clients[qClient] = tableID
 				tables[tableID] = Client{name: qClient, startTime: clientTime}
-				fmt.Printf("%02d:%02d %d %s %d\n", clientTime.Hour(), clientTime.Minute(), 12, clientName, tableID)
+				fmt.Println(textOKTableID(clientTime, "12", qClient, tableID))
+
 			}
-			//берем из очереди клиента
 
 		}
 
@@ -160,63 +172,13 @@ func main() {
 		goneClients = append(goneClients, tables[tableID].name)
 	}
 	for _, clientName := range goneClients {
-		fmt.Printf("%02d:%02d %d %s \n", workEndTime.Hour(), workEndTime.Minute(), 11, clientName)
+		fmt.Println(textOk(workEndTime, "11", clientName))
 	}
+	fmt.Printf("%02d:%02d \n", workEndTime.Hour(), workEndTime.Minute())
+
 	for i, t := range res {
 		cashRes := math.Ceil(t/60) * float64(cost)
-		fmt.Println(i+1, cashRes)
+		fmt.Printf("%d %d %02d:%02d\n", i+1, int(cashRes), int(t/60), int(t)%60)
+
 	}
-	fmt.Printf("%02d:%02d\n", workEndTime.Hour(), workEndTime.Minute())
-
 }
-
-//09:00
-//08:48 1 client1
-//13 NotOpenYet
-//09:41 1 client1
-//09:48 1 client2
-//09:52 3 client1
-//13 ICanWaitNoLonger!
-//09:54  2 client1 1
-//10:25  2 client2 2
-//10:58 1 client3
-//10:59  2 client3 3
-//11:30 1 client4
-//11:35  2 client4 2
-//13 PlaceIsBusy
-//11:45 3 client4
-//12:33 4 client1
-//12:33 12 client1 1
-//12:43 4 client2
-//15:52 4 client4
-//19:00 11 client3
-//1 60
-//2 30
-//3 90
-//19:00
-//
-//
-//09:00
-//08:48 1 client1
-//08:48 13 NotOpenYet
-//09:41 1 client1
-//09:48 1 client2
-//09:52 3 client1
-//09:52 13 ICanWaitNoLonger!
-//09:54 2 client1 1
-//10:25 2 client2 2
-//10:58 1 client3
-//10:59 2 client3 3
-//11:30 1 client4
-//11:35 2 client4 2
-//11:35 13 PlaceIsBusy
-//11:45 3 client4
-//12:33 4 client1
-//12:33 12 client4 1
-//12:43 4 client2
-//15:52 4 client4
-//19:00 11 client3
-//19:00
-//1 70 05:58
-//2 30 02:18
-//3 90 08:01
