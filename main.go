@@ -69,7 +69,7 @@ func main() {
 
 	for scanner.Scan() {
 		str := scanner.Text()
-		inputData, ok := getInputData(str, lastTime)
+		inputData, ok := getInputData(str, &lastTime)
 		if !ok {
 			return
 		}
