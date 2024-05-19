@@ -31,7 +31,14 @@ func countProfit(t float64, cost int) float64 {
 	return math.Ceil(t/60) * float64(cost)
 }
 func main() {
-	inFile, err := os.Open("file.txt")
+	args := os.Args[1:]
+
+	if len(args) == 0 {
+		panic("no input file ")
+
+	}
+	fileName := args[0]
+	inFile, err := os.Open("./" + fileName)
 	if err != nil {
 		panic(err)
 	}
