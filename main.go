@@ -14,6 +14,10 @@ type Client struct {
 	name      string
 	startTime time.Time
 }
+type Res struct {
+	spentTime float64
+	profit    float64
+}
 
 const (
 	NotOpenYet       = "NotOpenYet"
@@ -23,10 +27,9 @@ const (
 	ClientUnknown    = "ClientUnknown"
 )
 
-const (
-	timeIDName = "%02d:%02d %s %s"
-)
-
+func countProfit(t float64, cost int) float64 {
+	return math.Ceil(t/60) * float64(cost)
+}
 func main() {
 	inFile, err := os.Open("file.txt")
 	if err != nil {
@@ -44,18 +47,22 @@ func main() {
 	workEndTime := strToTime(workTimeStrSplited[1])
 
 	cost, _ := strconv.Atoi(readLine(scanner))
+
 	// учет столов tableId : client {name, startTime}
 	tables := make(map[int]Client)
+
 	// учет клинетов name : tableID
 	clients := make(map[string]int)
+
 	// очередь ожидания
 	q := NewQueue()
-	// итоговые данные по столам
 
-	res := make([]float64, computerCount)
+	// итоговые данные по столам
+	res := make([]Res, computerCount)
 
 	// итоговые ушедших
 	goneClients := make([]string, 0)
+
 	fmt.Printf("%02d:%02d\n", workStartTime.Hour(), workStartTime.Minute())
 
 	for scanner.Scan() {
@@ -93,6 +100,7 @@ func main() {
 
 				continue
 			}
+
 			delete(clients, clientName)
 			clients[clientName] = tableID
 
@@ -121,21 +129,23 @@ func main() {
 
 				continue
 			}
-			// считаем время за компом
 			tableID := clients[clientName]
 			leftClient := tables[tableID]
 
+			// считаем время за компом в минутах
 			spentTime := clientTime.Sub(leftClient.startTime)
+			//добавляет в итоговые значения
+			res[tableID-1].spentTime += spentTime.Minutes()
+			res[tableID-1].profit += countProfit(spentTime.Minutes(), cost)
 
-			res[tableID-1] += spentTime.Minutes()
 			delete(clients, clientName)
 
 			// берем из очереди клиента
-			qClient := q.Pop()
-			if qClient != "" {
-				clients[qClient] = tableID
-				tables[tableID] = Client{name: qClient, startTime: clientTime}
-				fmt.Println(textOKTableID(clientTime, "12", qClient, tableID))
+			qClientName := q.Pop()
+			if qClientName != "" {
+				clients[qClientName] = tableID
+				tables[tableID] = Client{name: qClientName, startTime: clientTime}
+				fmt.Println(textOKTableID(clientTime, "12", qClientName, tableID))
 
 			}
 
@@ -143,8 +153,10 @@ func main() {
 
 	}
 	for _, tableID := range clients {
+		//добавляем в результат оставшихся в компьютерном клубе
 		spentTime := workEndTime.Sub(tables[tableID].startTime)
-		res[tableID-1] += spentTime.Minutes()
+		res[tableID-1].spentTime += spentTime.Minutes()
+		res[tableID-1].profit += countProfit(spentTime.Minutes(), cost)
 
 		goneClients = append(goneClients, tables[tableID].name)
 	}
@@ -153,9 +165,9 @@ func main() {
 	}
 	fmt.Printf("%02d:%02d \n", workEndTime.Hour(), workEndTime.Minute())
 
-	for i, t := range res {
-		cashRes := math.Ceil(t/60) * float64(cost)
-		fmt.Printf("%d %d %02d:%02d\n", i+1, int(cashRes), int(t/60), int(t)%60)
+	for i, value := range res {
+
+		fmt.Printf("%d %d %02d:%02d\n", i+1, int(value.profit), int(value.spentTime/60), int(value.spentTime)%60)
 
 	}
 }

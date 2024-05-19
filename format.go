@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"time"
 )
-
+const (
+	timeIDName = "%02d:%02d %s %s"
+)
 func textOk(t time.Time, ID, clientName string) string {
 	return fmt.Sprintf(timeIDName, t.Hour(), t.Minute(), ID, clientName)
 }
