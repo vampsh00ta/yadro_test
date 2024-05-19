@@ -2,6 +2,10 @@ package main
 
 import (
 	"bufio"
+	"fmt"
+	"regexp"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -14,4 +18,49 @@ func strToTime(str string) time.Time {
 func readLine(scanner *bufio.Scanner) string {
 	scanner.Scan()
 	return scanner.Text()
+}
+
+func checkCorrectTime(currTime, lastTime string) bool {
+	if strToTime(currTime).Before(strToTime(lastTime)) {
+		return false
+	}
+	splitedCurrTime := strings.Split(currTime, ":")
+	if len(splitedCurrTime) != 2 {
+		return false
+	}
+	if splitedCurrTime[0] == "" || splitedCurrTime[1] == "" {
+		return false
+	}
+	if len(splitedCurrTime[0]) > 2 || len(splitedCurrTime[1]) > 2 {
+		return false
+	}
+	return true
+}
+
+const formatRegex = `^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9] (1|2|3|4) [a-zA-Z0-9]+\s?[0-9]*$`
+
+func getInputData(str string, lastTime string) (InputData, bool) {
+	re, _ := regexp.Compile(formatRegex)
+
+	if !re.Match([]byte(str)) {
+		fmt.Println(str)
+		return InputData{}, false
+	}
+
+	var inputData InputData
+	splitStr := strings.Split(str, " ")
+	clientTimeStr := splitStr[0]
+	if strToTime(clientTimeStr).Before(strToTime(lastTime)) {
+		return InputData{}, false
+	}
+	lastTime = clientTimeStr
+	inputData.clientTime = strToTime(clientTimeStr)
+
+	inputData.eventID = splitStr[1]
+	inputData.clientName = splitStr[2]
+	if inputData.eventID == "2" {
+		tableID, _ := strconv.Atoi(splitStr[3])
+		inputData.tableID = tableID
+	}
+	return inputData, true
 }
