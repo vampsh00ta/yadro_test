@@ -62,7 +62,7 @@ func main() {
 	// итоговые данные по столам
 	res := make([]Res, computerCount)
 
-	// итоговые ушедшие/оставшийся до закрытия
+	// итоговые недождавшиеся/оставшийся до закрытия
 	goneClients := make([]string, 0)
 
 	fmt.Printf("%02d:%02d\n", workStartTime.Hour(), workStartTime.Minute())
